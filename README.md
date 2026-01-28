@@ -219,7 +219,7 @@ Results are analyzed using:
 * Precision, recall, and Jaccard similarity
 * Ground‑truth RTT matrices for validation
 
-Plots and detailed analysis is provided separately inside `results` directory
+Detailed analysis can be found in the results report [here](https://github.com/haarshdev/hilbert-range-query/blob/master/results/Range%20Query%20Results%20Small%20Topology.pdf)
 
 ---
 
