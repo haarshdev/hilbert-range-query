@@ -1,4 +1,0 @@
-query_node,rtt_ms,hilbert_order,truth_size,returned,tp,fp,fn,precision,recall,jaccard
-serf1,15,10,13,12,12,0,1,1,0.923077,0.923077
-serf1,15,15,13,12,12,0,1,1,0.923077,0.923077
-serf1,15,10,13,12,12,0,1,1,0.923077,0.923077
