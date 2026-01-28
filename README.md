@@ -35,6 +35,7 @@ The result is a fast, scalable approximation of RTT‑based neighbor discovery.
 ├── clab-nebula/           # Containerlab topology files for the 30-node setup
 ├── cluster-status/        # Serf cluster status snapshots
 ├── coordinates_rtts/      # Scripts for collecting coordinate data 
+├── images/                # 30 node topology image
 ├── lawder/                # Lawder source code
 │   └── 00make/            # Build directory (driver must be run from here)
 │   └── hilbert/           # Maps multidimensional coordinates to a one-dimensional Hilbert index
@@ -42,6 +43,7 @@ The result is a fast, scalable approximation of RTT‑based neighbor discovery.
 │   └── db/                # Low-level storage layer that handles disk pages, buffering, and persistence
 │   └── tests/             # Contains driver programs, including the custom serf_driver used in this experiment
 │   └── utils/             # Shared helper functionality used across Lawder components
+├── results/               # The analysis and results
 ├── router/                # Router configuration for the topology
 ├── rtt-matrix/            # Ground-truth and predicted RTT matrices
 ├── scripts/               # Helper scripts for topology execution (eg: injecting delays, cleaning up, etc.)
@@ -88,10 +90,12 @@ lawder/00make
 Typical build process:
 
 1. Enter the build directory
-2. Compile the Lawder library and the custom driver
+2. Run `make -f linux.m serf_driver.exe`
 3. Ensure `serf_driver.exe` is produced
 
 The driver **must be executed from this directory**, as it relies on relative paths for index files and inputs.
+
+Note: Since this repository already contains the compiled `serf_driver.exe` inside `lawder/00make` it can be directly execued without a build.
 
 ---
 
@@ -123,21 +127,19 @@ If none of the above has changed, the flag can be omitted and the existing datab
 
 ## Command‑Line Options
 
-| Option      | Description                                       |
-| ----------- | ------------------------------------------------- |
+| Option      | Description                                                         |
+| ----------- | -------------------------------------------------                   |
 | `--qnode`   | Query node name (for example `clab-nebula-serf1`) |
 | `--rtt`     | RTT threshold in milliseconds                     |
 | `--horder`  | Hilbert curve order used for indexing             |
 | `--rebuild` | Force rebuild of the index and database           |
 | `--debug`   | Enable verbose debug output (if compiled)         |
-| `--json`    | Path to the Serf cluster status JSON file         |
-              | containing node coordinates and metadata. If not  |
-              | specified uses the default file used in the code. |
+| `--json`    | Path to the Serf cluster status JSON file containing node coordinates and metadata. <br> If not specified, the default  file used in the code is applied. |
                 
 
 ---
 
-## How the Query Works (Conceptual)
+## How the Query Works
 
 This implementation follows a structured approach derived from an earlier design discussion, refined and adapted for practical use in this experiment. The key challenge addressed here is how to map an RTT-based query region into a form that can be efficiently processed by a Hilbert-curve index.
 
@@ -173,7 +175,7 @@ These sub-quadrants are then passed to the Hilbert index as query regions.
 
 ---
 
-## Pruning Strategy (Intuition)
+## Pruning Strategy
 
 The pruning mechanism is based on a simple idea:
 
@@ -185,7 +187,7 @@ This approach preserves recall while substantially reducing false positives comp
 
 ---
 
-## Lawder Code (Brief Context)
+## Lawder Code
 
 This repository includes the Lawder Hilbert DB implementation, which provides:
 
@@ -211,7 +213,7 @@ Results are analyzed using:
 * Precision, recall, and Jaccard similarity
 * Ground‑truth RTT matrices for validation
 
-Plots and detailed analyses are provided separately and can be included or referenced as needed.
+Plots and detailed analysis is provided separately inside `results` directory
 
 ---
 
@@ -244,3 +246,9 @@ Plots and detailed analyses are provided separately and can be included or refer
 
 
 These references provide the theoretical foundation for Hilbert-curve–based multidimensional indexing and the practical background for Serf’s network coordinate system used in this project.
+
+## License
+This project is provided for educational and research purposes. Container images and routing software are subject to their respective licenses.
+
+## Author
+Created by Harsha Nanayakkara as part of a large-scale research project, focusing on latency-aware range queries using Serf Vivaldi coordinates and Hilbert-curve–based indexing.
