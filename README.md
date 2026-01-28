@@ -61,6 +61,8 @@ The result is a fast, scalable approximation of RTT‑based neighbor discovery.
 * Nodes are connected via three switches and a central router
 * Network delays are injected to create controlled RTT patterns
 
+![30-node experimental topology](images/30nodetopo.png)
+
 ### Coordinates
 
 * Serf uses Vivaldi to compute predicted RTT coordinates
