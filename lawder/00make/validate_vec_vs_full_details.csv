@@ -1,0 +1,123 @@
+query,T_ms,node,class,d_vec_ms,d_full_ms,delta_ms,vec_in_T,full_in_T,reason
+serf1,5.0,serf2,TP,1.063885,1.024895,-0.038989,True,True,OK
+serf1,5.0,serf3,TP,0.507378,3.438534,2.931157,True,True,OK
+serf1,5.0,serf4,FP,1.454392,5.234107,3.779715,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,5.0,serf5,FP,1.134711,6.344161,5.20945,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,5.0,serf6,FP,0.647363,5.720458,5.073095,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf11,TP,14.609384,13.132997,-1.476387,True,True,OK
+serf1,15.0,serf12,TP,14.472695,13.797178,-0.675517,True,True,OK
+serf1,15.0,serf2,TP,1.063885,1.024895,-0.038989,True,True,OK
+serf1,15.0,serf3,TP,0.507378,3.438534,2.931157,True,True,OK
+serf1,15.0,serf4,TP,1.454392,5.234107,3.779715,True,True,OK
+serf1,15.0,serf5,TP,1.134711,6.344161,5.20945,True,True,OK
+serf1,15.0,serf6,TP,0.647363,5.720458,5.073095,True,True,OK
+serf1,15.0,serf7,TP,12.784042,10.418795,-2.365247,True,True,OK
+serf1,15.0,serf8,TP,13.67796,11.459693,-2.218267,True,True,OK
+serf1,15.0,serf13,FP,14.86372,15.09888,0.235159,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf14,FP,12.371251,16.240088,3.868837,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf15,FP,12.490773,17.342597,4.851824,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf16,FP,14.444419,17.756682,3.312263,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf23,FP,14.857987,16.940552,2.082565,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf24,FP,14.024622,18.61672,4.592099,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf25,FP,14.887083,18.741592,3.854509,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf27,FP,13.955662,20.308657,6.352995,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf1,15.0,serf10,FN,16.812521,14.737292,-2.075228,False,True,Missed node (inside full RTT threshold)
+serf1,15.0,serf9,FN,15.046208,12.386284,-2.659924,False,True,Missed node (inside full RTT threshold)
+serf5,5.0,serf2,TP,0.534867,4.190096,3.655228,True,True,OK
+serf5,5.0,serf1,FP,1.134711,6.344161,5.20945,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,5.0,serf3,FP,0.711519,7.336894,6.625374,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,5.0,serf4,FP,1.07788,8.551813,7.473933,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,5.0,serf6,FP,0.889135,9.656447,8.767313,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,15.0,serf1,TP,1.134711,6.344161,5.20945,True,True,OK
+serf5,15.0,serf2,TP,0.534867,4.190096,3.655228,True,True,OK
+serf5,15.0,serf3,TP,0.711519,7.336894,6.625374,True,True,OK
+serf5,15.0,serf4,TP,1.07788,8.551813,7.473933,True,True,OK
+serf5,15.0,serf6,TP,0.889135,9.656447,8.767313,True,True,OK
+serf5,15.0,serf7,TP,11.806335,13.135306,1.328971,True,True,OK
+serf5,15.0,serf8,TP,13.08645,14.562401,1.475951,True,True,OK
+serf5,15.0,serf14,FP,13.065846,20.6289,7.563055,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,15.0,serf15,FP,13.16047,21.706511,8.546042,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,15.0,serf16,FP,15.02364,22.030121,7.006481,False,False,Vec already too high (not caused by height/adjust)
+serf5,15.0,serf24,FP,14.987523,23.273839,8.286316,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,15.0,serf27,FP,14.922239,24.969451,10.047212,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf5,15.0,serf9,FP,14.414499,15.448793,1.034294,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf10,15.0,serf1,FN,16.812521,14.737292,-2.075228,False,True,Missed node (inside full RTT threshold)
+serf10,15.0,serf2,FN,15.986771,12.357322,-3.62945,False,True,Missed node (inside full RTT threshold)
+serf10,15.0,serf7,FN,17.323179,11.367472,-5.955707,False,True,Missed node (inside full RTT threshold)
+serf10,15.0,serf8,FN,17.87645,12.067723,-5.808727,False,True,Missed node (inside full RTT threshold)
+serf10,15.0,serf9,FN,19.197084,12.9467,-6.250384,False,True,Missed node (inside full RTT threshold)
+serf11,5.0,serf12,TP,0.217201,2.27738,2.060179,True,True,OK
+serf11,5.0,serf13,TP,0.415038,3.37489,2.959852,True,True,OK
+serf11,5.0,serf14,TP,2.810433,3.687651,0.877218,True,True,OK
+serf11,5.0,serf16,TP,3.572006,3.89265,0.320644,True,True,OK
+serf11,5.0,serf15,FP,3.510701,5.370905,1.860205,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf11,15.0,serf1,TP,14.609384,13.132997,-1.476387,True,True,OK
+serf11,15.0,serf12,TP,0.217201,2.27738,2.060179,True,True,OK
+serf11,15.0,serf13,TP,0.415038,3.37489,2.959852,True,True,OK
+serf11,15.0,serf14,TP,2.810433,3.687651,0.877218,True,True,OK
+serf11,15.0,serf15,TP,3.510701,5.370905,1.860205,True,True,OK
+serf11,15.0,serf16,TP,3.572006,3.89265,0.320644,True,True,OK
+serf11,15.0,serf17,TP,13.228635,8.181129,-5.047506,True,True,OK
+serf11,15.0,serf18,TP,13.55843,8.077455,-5.480975,True,True,OK
+serf11,15.0,serf19,TP,14.18692,8.770984,-5.415936,True,True,OK
+serf11,15.0,serf3,TP,14.889475,14.829013,-0.060463,True,True,OK
+serf11,15.0,serf2,FN,15.474055,12.443446,-3.030609,False,True,Missed node (inside full RTT threshold)
+serf11,15.0,serf20,FN,15.321587,10.166106,-5.15548,False,True,Missed node (inside full RTT threshold)
+serf15,5.0,serf11,FP,3.510701,5.370905,1.860205,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,5.0,serf12,FP,3.461725,6.1228,2.661075,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,5.0,serf13,FP,3.819224,7.390976,3.571751,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,5.0,serf14,FP,1.12145,8.326879,7.205429,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,5.0,serf16,FP,2.729004,9.377859,6.648855,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf11,TP,3.510701,5.370905,1.860205,True,True,OK
+serf15,15.0,serf12,TP,3.461725,6.1228,2.661075,True,True,OK
+serf15,15.0,serf13,TP,3.819224,7.390976,3.571751,True,True,OK
+serf15,15.0,serf14,TP,1.12145,8.326879,7.205429,True,True,OK
+serf15,15.0,serf16,TP,2.729004,9.377859,6.648855,True,True,OK
+serf15,15.0,serf17,TP,12.126218,13.406923,1.280705,True,True,OK
+serf15,15.0,serf1,FP,12.490773,17.342597,4.851824,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf18,FP,14.720648,15.567884,0.847236,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf2,FP,13.390559,16.688161,3.297602,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf3,FP,12.812099,19.079847,6.267749,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf4,FP,13.457393,20.5737,7.116307,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf5,FP,13.16047,21.706511,8.546042,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf15,15.0,serf6,FP,12.908188,21.317875,8.409687,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf20,15.0,serf13,TP,14.972183,11.52825,-3.443934,True,True,OK
+serf20,15.0,serf11,FN,15.321587,10.166106,-5.15548,False,True,Missed node (inside full RTT threshold)
+serf20,15.0,serf12,FN,15.328229,10.973619,-4.35461,False,True,Missed node (inside full RTT threshold)
+serf20,15.0,serf17,FN,19.303206,13.568226,-5.73498,False,True,Missed node (inside full RTT threshold)
+serf21,5.0,serf22,TP,0.491121,2.494341,2.00322,True,True,OK
+serf21,5.0,serf23,TP,3.16167,2.131799,-1.029872,True,True,OK
+serf21,5.0,serf25,TP,2.999387,3.741459,0.742072,True,True,OK
+serf21,5.0,serf24,FP,3.837013,5.316674,1.479662,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf21,5.0,serf27,FP,3.7083,6.948858,3.240557,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf21,15.0,serf22,TP,0.491121,2.494341,2.00322,True,True,OK
+serf21,15.0,serf23,TP,3.16167,2.131799,-1.029872,True,True,OK
+serf21,15.0,serf24,TP,3.837013,5.316674,1.479662,True,True,OK
+serf21,15.0,serf25,TP,2.999387,3.741459,0.742072,True,True,OK
+serf21,15.0,serf26,TP,11.885222,6.610145,-5.275077,True,True,OK
+serf21,15.0,serf27,TP,3.7083,6.948858,3.240557,True,True,OK
+serf21,15.0,serf28,TP,12.830026,7.511658,-5.318369,True,True,OK
+serf21,15.0,serf29,TP,13.299883,7.820752,-5.479131,True,True,OK
+serf21,15.0,serf30,TP,14.267363,8.613069,-5.654294,True,True,OK
+serf21,15.0,serf2,FN,17.598354,14.446928,-3.151426,False,True,Missed node (inside full RTT threshold)
+serf25,5.0,serf21,TP,2.999387,3.741459,0.742072,True,True,OK
+serf25,5.0,serf22,TP,2.550757,4.119082,1.568325,True,True,OK
+serf25,5.0,serf23,TP,0.457873,4.879715,4.421842,True,True,OK
+serf25,5.0,serf24,FP,0.952602,7.883978,6.931376,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf25,5.0,serf27,FP,0.974615,9.666887,8.692271,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf25,15.0,serf21,TP,2.999387,3.741459,0.742072,True,True,OK
+serf25,15.0,serf22,TP,2.550757,4.119082,1.568325,True,True,OK
+serf25,15.0,serf23,TP,0.457873,4.879715,4.421842,True,True,OK
+serf25,15.0,serf24,TP,0.952602,7.883978,6.931376,True,True,OK
+serf25,15.0,serf26,TP,11.06572,11.242357,0.176637,True,True,OK
+serf25,15.0,serf27,TP,0.974615,9.666887,8.692271,True,True,OK
+serf25,15.0,serf28,TP,13.973797,14.107142,0.133345,True,True,OK
+serf25,15.0,serf29,TP,14.7007,14.673282,-0.027417,True,True,OK
+serf25,15.0,serf1,FP,14.887083,18.741592,3.854509,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf25,15.0,serf6,FP,14.988725,22.401097,7.412372,True,False,"Vec OK, full RTT too high (height/adjust pushed over)"
+serf30,15.0,serf21,TP,14.267363,8.613069,-5.654294,True,True,OK
+serf30,15.0,serf22,TP,14.445206,9.617166,-4.828041,True,True,OK
+serf30,15.0,serf23,FN,16.104264,14.129741,-1.974524,False,True,Missed node (inside full RTT threshold)
+serf30,15.0,serf26,FN,17.994423,11.774693,-6.219729,False,True,Missed node (inside full RTT threshold)
+serf30,15.0,serf28,FN,20.350689,14.087668,-6.263021,False,True,Missed node (inside full RTT threshold)
+serf30,15.0,serf29,FN,21.100711,14.676928,-6.423783,False,True,Missed node (inside full RTT threshold)

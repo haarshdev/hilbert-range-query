@@ -1,0 +1,19 @@
+query_node,rtt_ms,hilbert_order,gt_nodes,returned_nodes,tp_nodes,fp_nodes,fn_nodes
+serf1,5,10,serf2 serf3 serf4 serf5,serf2 serf3 serf4 serf5,serf2 serf3 serf4 serf5,,
+serf1,15,10,serf10 serf11 serf12 serf13 serf2 serf21 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf14 serf15 serf16 serf2 serf22 serf23 serf24 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf14 serf15 serf16 serf22 serf23 serf24,serf21
+serf5,5,10,serf1,serf1 serf2 serf3 serf4 serf6 serf7,serf1,serf2 serf3 serf4 serf6 serf7,
+serf5,15,10,serf1 serf2 serf3 serf4 serf6 serf7 serf8,serf1 serf10 serf11 serf12 serf13 serf14 serf15 serf16 serf2 serf22 serf23 serf24 serf27 serf3 serf4 serf6 serf7 serf8 serf9,serf1 serf2 serf3 serf4 serf6 serf7 serf8,serf10 serf11 serf12 serf13 serf14 serf15 serf16 serf22 serf23 serf24 serf27 serf9,
+serf10,5,10,,,,,
+serf10,15,10,serf1 serf2 serf3 serf7 serf8,serf1 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf1 serf2 serf3 serf7 serf8,serf4 serf5 serf6 serf9,
+serf11,5,10,serf12 serf13 serf14,serf12 serf13 serf14 serf15 serf16,serf12 serf13 serf14,serf15 serf16,
+serf11,15,10,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf2 serf20,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf2 serf20 serf3 serf4 serf5 serf6,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf2 serf20,serf3 serf4 serf5 serf6,
+serf15,5,10,,serf11 serf12 serf13 serf14 serf16 serf17,,serf11 serf12 serf13 serf14 serf16 serf17,
+serf15,15,10,serf11 serf12 serf13 serf14 serf16 serf17 serf18 serf19,serf1 serf11 serf12 serf13 serf14 serf16 serf17 serf18 serf19 serf2 serf20 serf3 serf4 serf5 serf6,serf11 serf12 serf13 serf14 serf16 serf17 serf18 serf19,serf1 serf2 serf20 serf3 serf4 serf5 serf6,
+serf20,5,10,,,,,
+serf20,15,10,serf11 serf12 serf13 serf16 serf17,serf11 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19,serf11 serf12 serf13 serf16 serf17,serf14 serf15 serf18 serf19,
+serf21,5,10,serf22 serf23 serf24 serf25,serf22 serf23 serf24 serf25 serf26,serf22 serf23 serf24 serf25,serf26,
+serf21,15,10,serf1 serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,,serf1
+serf25,5,10,serf21,serf21 serf22 serf23 serf24 serf26 serf27,serf21,serf22 serf23 serf24 serf26 serf27,
+serf25,15,10,serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29 serf30,serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29 serf30,serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29 serf30,,
+serf30,5,10,,,,,
+serf30,15,10,serf21 serf22 serf23 serf24 serf25 serf26,serf21 serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29,serf21 serf22 serf23 serf24 serf25 serf26,serf27 serf28 serf29,

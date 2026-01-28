@@ -1,0 +1,4 @@
+query_node,rtt_ms,hilbert_order,gt_nodes,returned_nodes,tp_nodes,fp_nodes,fn_nodes
+serf1,15,10,serf10 serf11 serf12 serf13 serf2 serf21 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,,serf21
+serf1,15,15,serf10 serf11 serf12 serf13 serf2 serf21 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,,serf21
+serf1,15,10,serf10 serf11 serf12 serf13 serf2 serf21 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf10 serf11 serf12 serf13 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,,serf21

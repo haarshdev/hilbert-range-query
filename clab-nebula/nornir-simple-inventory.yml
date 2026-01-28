@@ -1,0 +1,171 @@
+---
+router:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.28
+serf1:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.9
+serf10:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.19
+serf11:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.6
+serf12:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.20
+serf13:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.15
+serf14:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.22
+serf15:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.11
+serf16:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.3
+serf17:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.18
+serf18:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.12
+serf19:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.24
+serf2:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.31
+serf20:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.5
+serf21:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.23
+serf22:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.30
+serf23:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.14
+serf24:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.8
+serf25:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.29
+serf26:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.2
+serf27:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.17
+serf28:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.27
+serf29:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.7
+serf3:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.21
+serf30:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.10
+serf4:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.13
+serf5:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.26
+serf6:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.4
+serf7:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.25
+serf8:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.32
+serf9:
+    username: 
+    password: 
+    platform: linux
+    hostname: 172.20.20.16
+switch_a:
+    username: 
+    password: 
+    platform: ovs-bridge
+    hostname: 
+switch_b:
+    username: 
+    password: 
+    platform: ovs-bridge
+    hostname: 
+switch_c:
+    username: 
+    password: 
+    platform: ovs-bridge
+    hostname: 

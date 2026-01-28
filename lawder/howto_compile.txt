@@ -1,0 +1,4 @@
+# Copyright (C) Jonathan Lawder 2001-2011
+
+cd 00make
+make -f linux.m

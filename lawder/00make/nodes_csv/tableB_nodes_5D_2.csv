@@ -1,0 +1,19 @@
+query_node,rtt_ms,hilbert_order,gt_nodes,returned_nodes,tp_nodes,fp_nodes,fn_nodes
+serf1,5,10,serf2 serf3,serf2 serf3 serf4 serf5 serf6,serf2 serf3,serf4 serf5 serf6,
+serf1,15,10,serf10 serf11 serf12 serf2 serf3 serf4 serf5 serf6 serf7 serf8 serf9,serf11 serf12 serf13 serf14 serf15 serf16 serf2 serf23 serf24 serf25 serf27 serf3 serf4 serf5 serf6 serf7 serf8,serf11 serf12 serf2 serf3 serf4 serf5 serf6 serf7 serf8,serf13 serf14 serf15 serf16 serf23 serf24 serf25 serf27,serf10 serf9
+serf5,5,10,serf2,serf1 serf2 serf3 serf4 serf6,serf2,serf1 serf3 serf4 serf6,
+serf5,15,10,serf1 serf2 serf3 serf4 serf6 serf7 serf8,serf1 serf14 serf15 serf16 serf2 serf24 serf27 serf3 serf4 serf6 serf7 serf8 serf9,serf1 serf2 serf3 serf4 serf6 serf7 serf8,serf14 serf15 serf16 serf24 serf27 serf9,
+serf10,5,10,,,,,
+serf10,15,10,serf1 serf2 serf7 serf8 serf9,,,,serf1 serf2 serf7 serf8 serf9
+serf11,5,10,serf12 serf13 serf14 serf16,serf12 serf13 serf14 serf15 serf16,serf12 serf13 serf14 serf16,serf15,
+serf11,15,10,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf2 serf20 serf3,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf3,serf1 serf12 serf13 serf14 serf15 serf16 serf17 serf18 serf19 serf3,,serf2 serf20
+serf15,5,10,,serf11 serf12 serf13 serf14 serf16,,serf11 serf12 serf13 serf14 serf16,
+serf15,15,10,serf11 serf12 serf13 serf14 serf16 serf17,serf1 serf11 serf12 serf13 serf14 serf16 serf17 serf18 serf2 serf3 serf4 serf5 serf6,serf11 serf12 serf13 serf14 serf16 serf17,serf1 serf18 serf2 serf3 serf4 serf5 serf6,
+serf20,5,10,,,,,
+serf20,15,10,serf11 serf12 serf13 serf17,serf13,serf13,,serf11 serf12 serf17
+serf21,5,10,serf22 serf23 serf25,serf22 serf23 serf24 serf25 serf27,serf22 serf23 serf25,serf24 serf27,
+serf21,15,10,serf2 serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,serf22 serf23 serf24 serf25 serf26 serf27 serf28 serf29 serf30,,serf2
+serf25,5,10,serf21 serf22 serf23,serf21 serf22 serf23 serf24 serf27,serf21 serf22 serf23,serf24 serf27,
+serf25,15,10,serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29,serf1 serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29 serf6,serf21 serf22 serf23 serf24 serf26 serf27 serf28 serf29,serf1 serf6,
+serf30,5,10,,,,,
+serf30,15,10,serf21 serf22 serf23 serf26 serf28 serf29,serf21 serf22,serf21 serf22,,serf23 serf26 serf28 serf29

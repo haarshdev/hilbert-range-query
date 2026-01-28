@@ -1,0 +1,79 @@
+all:
+  vars:
+    # The generated inventory is assumed to be used from the clab host.
+    # Hence no http proxy should be used. Therefore we make sure the http
+    # module does not attempt using any global http proxy.
+    ansible_httpapi_use_proxy: false
+  children:
+    linux:
+      hosts:
+        clab-nebula-router:
+          ansible_host: 172.20.20.28
+        clab-nebula-serf1:
+          ansible_host: 172.20.20.9
+        clab-nebula-serf10:
+          ansible_host: 172.20.20.19
+        clab-nebula-serf11:
+          ansible_host: 172.20.20.6
+        clab-nebula-serf12:
+          ansible_host: 172.20.20.20
+        clab-nebula-serf13:
+          ansible_host: 172.20.20.15
+        clab-nebula-serf14:
+          ansible_host: 172.20.20.22
+        clab-nebula-serf15:
+          ansible_host: 172.20.20.11
+        clab-nebula-serf16:
+          ansible_host: 172.20.20.3
+        clab-nebula-serf17:
+          ansible_host: 172.20.20.18
+        clab-nebula-serf18:
+          ansible_host: 172.20.20.12
+        clab-nebula-serf19:
+          ansible_host: 172.20.20.24
+        clab-nebula-serf2:
+          ansible_host: 172.20.20.31
+        clab-nebula-serf20:
+          ansible_host: 172.20.20.5
+        clab-nebula-serf21:
+          ansible_host: 172.20.20.23
+        clab-nebula-serf22:
+          ansible_host: 172.20.20.30
+        clab-nebula-serf23:
+          ansible_host: 172.20.20.14
+        clab-nebula-serf24:
+          ansible_host: 172.20.20.8
+        clab-nebula-serf25:
+          ansible_host: 172.20.20.29
+        clab-nebula-serf26:
+          ansible_host: 172.20.20.2
+        clab-nebula-serf27:
+          ansible_host: 172.20.20.17
+        clab-nebula-serf28:
+          ansible_host: 172.20.20.27
+        clab-nebula-serf29:
+          ansible_host: 172.20.20.7
+        clab-nebula-serf3:
+          ansible_host: 172.20.20.21
+        clab-nebula-serf30:
+          ansible_host: 172.20.20.10
+        clab-nebula-serf4:
+          ansible_host: 172.20.20.13
+        clab-nebula-serf5:
+          ansible_host: 172.20.20.26
+        clab-nebula-serf6:
+          ansible_host: 172.20.20.4
+        clab-nebula-serf7:
+          ansible_host: 172.20.20.25
+        clab-nebula-serf8:
+          ansible_host: 172.20.20.32
+        clab-nebula-serf9:
+          ansible_host: 172.20.20.16
+    ovs-bridge:
+      hosts:
+        clab-nebula-switch_a:
+          ansible_host: 
+        clab-nebula-switch_b:
+          ansible_host: 
+        clab-nebula-switch_c:
+          ansible_host: 

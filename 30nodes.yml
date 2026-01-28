@@ -1,0 +1,306 @@
+name: nebula
+
+topology:
+  nodes:
+    #---------------------------------Switches---------------------------------
+    switch_a:
+      kind: ovs-bridge
+    switch_b:
+      kind: ovs-bridge
+    switch_c:
+      kind: ovs-bridge
+
+    # ---------- Router between the three OVS bridges -------------------------------------------
+    router:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - router/daemons:/etc/frr/daemons
+        - router/frr.conf:/etc/frr/frr.conf
+
+    #---------------------------------Serf Nodes---------------------------------
+    serf1:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+      ports:
+        - "7373:7373"
+    serf2:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf3:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf4:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf5:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf6:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf7:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf8:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf9:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf10:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf11:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf12:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf13:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf14:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf15:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf16:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf17:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf18:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf19:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf20:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf21:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf22:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf23:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf24:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf25:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf26:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf27:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf28:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf29:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+    serf30:
+      kind: linux
+      image: harsha258/ubuntu-for-serf
+      binds:
+        - ./scripts/init.sh:/init.sh
+        - ./ip-mapping.txt:/ip-mapping.txt:ro
+      exec:
+        - bash -lc "bash /init.sh"
+
+  links:
+    #---------------------------------Router uplinks to switches---------------------------------
+    - endpoints: ["switch_a:sap1", "router:eth1"]
+    - endpoints: ["switch_b:sbp1", "router:eth2"]
+    - endpoints: ["switch_c:scp1", "router:eth3"]
+
+    #---------------------------------Serf1 to serf 10 on switch_a---------------------------------
+    - endpoints: ["switch_a:sap2", "serf1:eth1"]
+    - endpoints: ["switch_a:sap3", "serf2:eth1"]
+    - endpoints: ["switch_a:sap4", "serf3:eth1"]
+    - endpoints: ["switch_a:sap5", "serf4:eth1"]
+    - endpoints: ["switch_a:sap6", "serf5:eth1"]
+    - endpoints: ["switch_a:sap7", "serf6:eth1"]
+    - endpoints: ["switch_a:sap8", "serf7:eth1"]
+    - endpoints: ["switch_a:sap9", "serf8:eth1"]
+    - endpoints: ["switch_a:sap10", "serf9:eth1"]
+    - endpoints: ["switch_a:sap11", "serf10:eth1"]
+
+    #---------------------------------Serf11 to serf 20 on switch_b---------------------------------
+    - endpoints: ["switch_b:sbp2", "serf11:eth1"]
+    - endpoints: ["switch_b:sbp3", "serf12:eth1"]
+    - endpoints: ["switch_b:sbp4", "serf13:eth1"]
+    - endpoints: ["switch_b:sbp5", "serf14:eth1"]
+    - endpoints: ["switch_b:sbp6", "serf15:eth1"]
+    - endpoints: ["switch_b:sbp7", "serf16:eth1"]
+    - endpoints: ["switch_b:sbp8", "serf17:eth1"]
+    - endpoints: ["switch_b:sbp9", "serf18:eth1"]
+    - endpoints: ["switch_b:sbp10", "serf19:eth1"]
+    - endpoints: ["switch_b:sbp11", "serf20:eth1"]
+
+    #---------------------------------Serf21 to serf 30 on switch_c---------------------------------
+    
+    - endpoints: ["switch_c:scp2", "serf21:eth1"]
+    - endpoints: ["switch_c:scp3", "serf22:eth1"]
+    - endpoints: ["switch_c:scp4", "serf23:eth1"]
+    - endpoints: ["switch_c:scp5", "serf24:eth1"]
+    - endpoints: ["switch_c:scp6", "serf25:eth1"]
+    - endpoints: ["switch_c:scp7", "serf26:eth1"]
+    - endpoints: ["switch_c:scp8", "serf27:eth1"]
+    - endpoints: ["switch_c:scp9", "serf28:eth1"]
+    - endpoints: ["switch_c:scp10", "serf29:eth1"]
+    - endpoints: ["switch_c:scp11", "serf30:eth1"]
