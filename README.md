@@ -95,7 +95,7 @@ Typical build process:
 
 The driver **must be executed from this directory**, as it relies on relative paths for index files and inputs.
 
-Note: Since this repository already contains the compiled `serf_driver.exe` inside `lawder/00make` it can be directly execued without a build.
+Note: Since this repository already contains the compiled `serf_driver.exe` inside `lawder/00make` it can be directly execued without building.
 
 ---
 
@@ -133,7 +133,7 @@ If none of the above has changed, the flag can be omitted and the existing datab
 | `--rtt`     | RTT threshold in milliseconds                     |
 | `--horder`  | Hilbert curve order used for indexing             |
 | `--rebuild` | Force rebuild of the index and database           |
-| `--debug`   | Enable verbose debug output (if compiled)         |
+| `--debug`   | Enable verbose debug output                       |
 | `--json`    | Path to the Serf cluster status JSON file containing node coordinates and metadata. <br> If not specified, the default  file used in the code is applied. |
                 
 
@@ -141,7 +141,7 @@ If none of the above has changed, the flag can be omitted and the existing datab
 
 ## How the Query Works
 
-This implementation follows a structured approach derived from an earlier design discussion, refined and adapted for practical use in this experiment. The key challenge addressed here is how to map an RTT-based query region into a form that can be efficiently processed by a Hilbert-curve index.
+The key challenge addressed here is how to map an RTT-based query region into a form that can be efficiently processed by a Hilbert-curve index.
 
 ### Background Intuition
 
@@ -165,25 +165,31 @@ This shifted space is not the original Vivaldi coordinate system. Instead, it is
 
 ### Step 3: Mapping the Query Region to Sub-Quadrants
 
-The query node’s coordinates are located within the shifted coordinate system. Around this point, an RTT-based search region is conceptually drawn.
+The query node’s coordinates are first located within the shifted coordinate system. An RTT-based search region is then defined conceptually around this point.
 
-Rather than converting the entire circular region into a large bounding box, the algorithm determines how many sub-quadrants the RTT radius spans along each dimension. Along axis-aligned directions, this corresponds to a direct scaling by the sub-quadrant size. Along diagonal directions, the effective coverage is reduced accordingly.
+The algorithm does not directly map the circular RTT region into a single bounding box for querying. Instead, it computes how many grid cells the RTT threshold spans along each dimension, based on the sub-quadrant size. This defines an initial axis-aligned search box centered at the query node.
 
-This process identifies a tight set of sub-quadrants that best approximate the circular query region while avoiding excessive over-coverage.
+This search box is recursively subdivided into smaller sub-quadrants. For each sub-quadrant, geometric intersection checks are applied to determine whether the sub-quadrant can possibly intersect the RTT sphere. Sub-quadrants that cannot intersect the RTT region are discarded early.
 
-These sub-quadrants are then passed to the Hilbert index as query regions.
+The remaining sub-quadrants represent the spatial regions that may contain valid results and are candidates for further evaluation.
 
 ---
 
-## Pruning Strategy
+## Pruning Strategy 
 
 The pruning mechanism is based on a simple idea:
 
 > If even the best‑case node inside a region cannot satisfy the RTT limit, then no real node inside that region can.
 
-By applying this rule hierarchically during index traversal, the algorithm eliminates entire blocks of the search space at once.
+The lower bound used for pruning is constructed as follows:
 
-This approach preserves recall while substantially reducing false positives compared to naive geometric queries.
+* First, the algorithm computes the minimum possible coordinate distance between the query node and the sub-quadrant. This value depends only on the query node’s coordinates and the geometric bounds of the box, and is independent of the actual locations of nodes inside the box.
+
+* Next, the algorithm scans the nodes contained in the sub-quadrant and extracts Height and Adjustment values that minimize the predicted RTT contribution. These values are selected independently and are not required to originate from the same real node.
+
+* Finally, the query node’s own Height and Adjustment are combined with the minimum coordinate distance and the selected box-level values to form an optimistic lower bound on the RTT for the entire sub-quadrant.
+
+If this optimistic lower bound already exceeds the RTT threshold, the entire sub-quadrant is pruned without querying the Hilbert index. Only sub-quadrants that pass this pruning step are subsequently queried through the Hilbert index using the Lawder implementation.
 
 ---
 
