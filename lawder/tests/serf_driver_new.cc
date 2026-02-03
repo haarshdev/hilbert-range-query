@@ -1,4 +1,4 @@
-// tests/serf_driver.cc serf_driver_5D
+// tests/serf_driver.cc  5D+pruning
 // Lawder Hilbert DB range query driver implementing professor Step 1–3
 // with an efficient "sphere -> sub-quadrants" mapping.
 //
@@ -32,15 +32,24 @@
 //   (3) Repeat-offender FP tracking across multiple runs via --fp_counts_json.
 //   (4) Append two CSVs per run: Table A (summary) + Table B (node lists).
 //
+// NEW UPDATE (this request):
+//   (5) Box-level RTT lower-bound pruning BEFORE calling Lawder:
+//       Keep existing prunes (Vec-sphere + occupancy) and add a third prune:
+//         "Even in the best possible case, could any node in this box have RTT <= T?"
+//       Best possible case means:
+//         - Use the minimum possible Vec distance from query to this box (minDist).
+//         - Use the minimum Height among nodes inside the box.
+//         - Use the minimum (most negative) Adjustment among nodes inside the box.
+//       If that optimistic lower bound already exceeds T_ms, the entire box cannot
+//       contain any true answers -> prune it (reduces FPs without post filtering).
+//
 // Compatibility fix:
 //   Accept JSON root as either an array (old) or an object containing "nodes" array (new).
-
 #ifdef DEV
   #include "../db/db.h"
 #else
   #include "db.h"
 #endif
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -55,11 +64,10 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <cstdint>
-
+#include <errno.h>
 #include "../tests/third-party/json.hpp"
 using json = nlohmann::json;
 using namespace std;
-
 // ---------------- helpers ----------------
 static bool read_all(const string& path, string& out) {
     ifstream f(path.c_str(), ios::in | ios::binary);
@@ -69,12 +77,15 @@ static bool read_all(const string& path, string& out) {
     out = ss.str();
     return true;
 }
-
 static bool file_exists(const std::string& path) {
     struct stat st;
     return stat(path.c_str(), &st) == 0;
 }
-
+static bool ensure_dir_exists(const std::string& dir) {
+    int rc = mkdir(dir.c_str(), 0755);
+    if (rc == 0) return true;          // created successfully
+    return errno == EEXIST;            // already exists
+}
 static bool read_json_file(const std::string& path, json& out) {
     std::string text;
     if (!read_all(path, text)) return false;
@@ -82,7 +93,6 @@ static bool read_json_file(const std::string& path, json& out) {
     catch (...) { return false; }
     return true;
 }
-
 static bool extract_nodes_array(const json& root, json& out_nodes) {
     if (root.is_array()) { out_nodes = root; return true; }
     if (root.is_object() && root.contains("nodes") && root["nodes"].is_array()) {
@@ -90,7 +100,6 @@ static bool extract_nodes_array(const json& root, json& out_nodes) {
     }
     return false;
 }
-
 static void usage(const char* prog) {
     std::cerr
       << "Usage:\n"
@@ -105,18 +114,15 @@ static void usage(const char* prog) {
       << "  " << prog << " --json cluster-status-15012026.json --qnode clab-nebula-serf1 --rtt 15 --horder 10 \\\n"
       << "      --out_summary_csv tableA_summary.csv --out_nodes_csv tableB_nodes.csv\n";
 }
-
 static string point_key(const array<PU_int,5>& p) {
     return to_string(p[0]) + "," + to_string(p[1]) + "," + to_string(p[2]) + "," +
            to_string(p[3]) + "," + to_string(p[4]);
 }
-
 static PU_int clamp_pu(long long v, PU_int lo, PU_int hi) {
     if (v < (long long)lo) return lo;
     if (v > (long long)hi) return hi;
     return (PU_int)v;
 }
-
 // Short name helper for CSV output (e.g., "clab-nebula-serf1" -> "serf1")
 static std::string short_name(const std::string& full) {
     size_t pos = full.rfind('-');
@@ -124,14 +130,12 @@ static std::string short_name(const std::string& full) {
     if (pos + 1 >= full.size()) return full;
     return full.substr(pos + 1);
 }
-
 // CSV helpers
 static bool file_empty_or_missing(const std::string& path) {
     struct stat st;
     if (stat(path.c_str(), &st) != 0) return true;
     return (st.st_size == 0);
 }
-
 static std::string csv_escape(const std::string& s) {
     // Escape for CSV: wrap in quotes if contains comma/quote/newline, double quotes inside.
     bool need = false;
@@ -149,7 +153,6 @@ static std::string csv_escape(const std::string& s) {
     out.push_back('"');
     return out;
 }
-
 static std::string join_names_sorted(std::vector<std::string> v) {
     std::sort(v.begin(), v.end());
     std::string out;
@@ -159,14 +162,12 @@ static std::string join_names_sorted(std::vector<std::string> v) {
     }
     return out;
 }
-
 static std::vector<std::string> to_short_names(const std::vector<std::string>& in) {
     std::vector<std::string> out;
     out.reserve(in.size());
     for (const auto& s : in) out.push_back(short_name(s));
     return out;
 }
-
 // ---------------- exact integer geometry ----------------
 static inline bool isSingleCell(const array<long long,5>& lo,
                                 const array<long long,5>& hi)
@@ -174,7 +175,6 @@ static inline bool isSingleCell(const array<long long,5>& lo,
     for (int d=0; d<5; d++) if (lo[d] != hi[d]) return false;
     return true;
 }
-
 static inline long long dist2_PointToPoint(
     const array<long long,5>& a,
     const array<long long,5>& b)
@@ -186,7 +186,6 @@ static inline long long dist2_PointToPoint(
     }
     return acc;
 }
-
 // ---------------- ms-space geometry helpers ----------------
 static inline double minDist2_PointToBox_ms(
     const array<double,5>& c,
@@ -201,7 +200,6 @@ static inline double minDist2_PointToBox_ms(
     }
     return acc;
 }
-
 static inline double maxDist2_PointToBox_ms(
     const array<double,5>& c,
     const array<double,5>& lo,
@@ -217,7 +215,6 @@ static inline double maxDist2_PointToBox_ms(
     }
     return acc;
 }
-
 // ---------------- Lawder range query helper ----------------
 struct QueryStats {
     uint64_t open_ok = 0;
@@ -225,7 +222,6 @@ struct QueryStats {
     uint64_t fetched_rows = 0;
     uint64_t matched_names = 0;
 };
-
 // open a range set and fetch at most 1 record.
 // Used ONLY for occupancy pruning.
 static bool box_has_any_point(DBASE* DB, const array<long long,5>& lo, const array<long long,5>& hi) {
@@ -237,7 +233,6 @@ static bool box_has_any_point(DBASE* DB, const array<long long,5>& lo, const arr
     DB->db_close_set(set_id);
     return any;
 }
-
 static void run_one_box_query(
     DBASE* DB,
     const array<long long,5>& lo,
@@ -250,16 +245,13 @@ static void run_one_box_query(
 {
     PU_int LB[5], UB[5], result[5];
     for (int d=0; d<5; d++) { LB[d]=(PU_int)lo[d]; UB[d]=(PU_int)hi[d]; }
-
     int set_id = -1;
     if (true == DB->db_range_open_set(LB, UB, &set_id)) {
         qs.open_ok++;
         while (true == DB->db_range_fetch_another(set_id, result)) {
             qs.fetched_rows++;
-
             array<PU_int,5> rp = {result[0],result[1],result[2],result[3],result[4]};
             string k = point_key(rp);
-
             auto itp = point_to_names.find(k);
             if (itp != point_to_names.end()) {
                 for (const string& nm : itp->second) {
@@ -276,16 +268,50 @@ static void run_one_box_query(
         qs.open_fail++;
     }
 }
-
 // ---------------- Sphere cover recursion (exact + occupancy pruning) ----------------
 struct CoverStats {
     uint64_t visited = 0;
     uint64_t pruned_outside = 0;
     uint64_t pruned_empty = 0;
+    // NEW: pruned by RTT optimistic lower bound (before querying Lawder)
+    uint64_t pruned_rtt_lb = 0;
     uint64_t accepted_inside = 0;
     uint64_t accepted_leaf = 0;
-};
 
+    // NEW (Table A only): how many dataset points fall inside boxes of each category
+    uint64_t pruned_rtt_lb_points = 0;
+    uint64_t accepted_leaf_points = 0;
+    uint64_t accepted_inside_points = 0;
+};
+// NEW helper:
+// Find optimistic (best-case) Height/Adjustment within this box by scanning the nodes.
+// This is intentionally simple and safe because N is small (tens/hundreds), and it avoids
+// building complex per-box summary structures.
+static inline void box_min_height_adj(
+    const vector<array<PU_int,5>>& pts,
+    const vector<double>& heights_ms,
+    const vector<double>& adjs_ms,
+    const array<long long,5>& lo,
+    const array<long long,5>& hi,
+    double& out_min_h,
+    double& out_min_adj,
+    uint64_t& out_point_count)
+{
+    out_min_h = std::numeric_limits<double>::infinity();
+    out_min_adj = std::numeric_limits<double>::infinity(); // "most negative" => minimum value
+    out_point_count = 0;
+    for (size_t i = 0; i < pts.size(); i++) {
+        bool inside = true;
+        for (int d = 0; d < 5; d++) {
+            long long v = (long long)pts[i][d];
+            if (v < lo[d] || v > hi[d]) { inside = false; break; }
+        }
+        if (!inside) continue;
+        out_point_count++;
+        if (heights_ms[i] < out_min_h) out_min_h = heights_ms[i];
+        if (adjs_ms[i] < out_min_adj)  out_min_adj = adjs_ms[i];
+    }
+}
 // depth counts subdivision steps; max depth is ORDER (leaf cell size = 1).
 static void coverSphere5D_indexed(
     DBASE* DB,
@@ -295,6 +321,11 @@ static void coverSphere5D_indexed(
     double cell_size_ms,                // for mapping grid box -> ms box
     const unordered_map<string, vector<string>>& point_to_names,
     const string& qname,
+    const vector<array<PU_int,5>>& pts, // NEW: all node grid coords for lower-bound scan
+    const vector<double>& heights_ms,   // NEW: node Height in ms
+    const vector<double>& adjs_ms,      // NEW: node Adjustment in ms
+    double q_height_ms,                 // NEW: query Height in ms
+    double q_adj_ms,                    // NEW: query Adjustment in ms
     unordered_map<string,int>& hilbert_set,
     vector<string>& hilbert_names,
     const array<long long,5>& lo,
@@ -304,61 +335,87 @@ static void coverSphere5D_indexed(
     QueryStats& qs)
 {
     st.visited++;
-
     const double r2_ms = (double)T_ms * (double)T_ms;
-
     // Map grid box [lo..hi] to Step-2 ms-space box [lo_ms..hi_ms]
     array<double,5> lo_ms, hi_ms;
     for (int d=0; d<5; d++) {
         lo_ms[d] = (double)lo[d] * cell_size_ms;
         hi_ms[d] = (double)(hi[d] + 1) * cell_size_ms;
     }
-
-    // Geometric prune: fully outside ms-space sphere
-    if (minDist2_PointToBox_ms(center_ms, lo_ms, hi_ms) > r2_ms) {
+    // Geometric prune: fully outside ms-space Vec-sphere
+    const double minDist2 = minDist2_PointToBox_ms(center_ms, lo_ms, hi_ms);
+    if (minDist2 > r2_ms) {
         st.pruned_outside++;
         return;
     }
-
-    // Occupancy prune
+    // Occupancy prune (skip boxes that contain no dataset points)
     if (!box_has_any_point(DB, lo, hi)) {
         st.pruned_empty++;
         return;
     }
-
+    // ------------------------------------------------------------
+    // NEW PRUNE (box-level RTT optimistic lower bound)
+    //
+    // Question:
+    //   "Even in the BEST possible case, could any node in this box have RTT <= T_ms?"
+    //
+    // Best possible case is intentionally optimistic:
+    //   - Use the closest possible Vec distance from query to this box (sqrt(minDist2)).
+    //   - Inside this box, pick the node with the smallest Height.
+    //   - Inside this box, pick the node with the most negative Adjustment.
+    //
+    // If even this optimistic lower bound is > T_ms, then NO node in this box can satisfy
+    // RTT <= T_ms, so the whole box is guaranteed FP and can be pruned BEFORE calling Lawder.
+    // ------------------------------------------------------------
+    double box_min_h = 0.0, box_min_adj = 0.0;
+    uint64_t box_point_count = 0;
+    box_min_height_adj(pts, heights_ms, adjs_ms, lo, hi, box_min_h, box_min_adj, box_point_count);
+    // box_has_any_point already says there is at least one point, so these should be finite.
+    // Still, guard defensively.
+    if (std::isfinite(box_min_h) && std::isfinite(box_min_adj)) {
+        const double min_vec_dist = std::sqrt(minDist2);
+        // RTT lower bound for any node in this box, using Serf coordinate model terms.
+        // This is a LOWER bound: real RTTs for nodes in this box are >= this value.
+        const double best_case_rtt_lb =
+            min_vec_dist + q_height_ms + box_min_h + q_adj_ms + box_min_adj;
+        if (best_case_rtt_lb > (double)T_ms) {
+            st.pruned_rtt_lb++;
+            st.pruned_rtt_lb_points += box_point_count;
+            return;
+        }
+    }
     const bool fully_inside = (maxDist2_PointToBox_ms(center_ms, lo_ms, hi_ms) <= r2_ms);
-
     // Leaf
     if (depth >= ORDER || isSingleCell(lo, hi)) {
         st.accepted_leaf++;
-        if (fully_inside) st.accepted_inside++;
-
+        st.accepted_leaf_points += box_point_count;
+        if (fully_inside) {
+            st.accepted_inside++;
+            st.accepted_inside_points += box_point_count;
+        }
         run_one_box_query(DB, lo, hi, point_to_names, qname,
                           hilbert_set, hilbert_names, qs);
         return;
     }
-
     // Subdivide into 32 children (5D)
     array<long long,5> mid;
     for (int d=0; d<5; d++) mid[d] = (lo[d] + hi[d]) >> 1;
-
     for (int mask=0; mask<(1<<5); mask++) {
         array<long long,5> clo, chi;
         for (int d=0; d<5; d++) {
             if (mask & (1<<d)) { clo[d] = mid[d] + 1; chi[d] = hi[d]; }
             else               { clo[d] = lo[d];      chi[d] = mid[d]; }
         }
-
         bool empty=false;
         for (int d=0; d<5; d++) if (clo[d] > chi[d]) { empty=true; break; }
         if (empty) continue;
-
         coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
-                              point_to_names, qname, hilbert_set, hilbert_names,
+                              point_to_names, qname,
+                              pts, heights_ms, adjs_ms, q_height_ms, q_adj_ms,
+                              hilbert_set, hilbert_names,
                               clo, chi, depth+1, st, qs);
     }
 }
-
 int main(int argc, char** argv) {
     std::string qname;
     int T_ms = -1;
@@ -367,14 +424,11 @@ int main(int argc, char** argv) {
     int step = 3;
     bool debug = false;
     bool vec_already_ms = false;
-
-    std::string input_json = "cluster-status-15012026.json";
+    std::string input_json = "cluster-status-15012026.json"; //"cluster-status-15012026.json";
     std::string fp_counts_json;
-
     // NEW: output CSVs (append unsorted; sort later in a separate step)
     std::string out_summary_csv = "summary_csv/tableA_summary.csv";
     std::string out_nodes_csv   = "nodes_csv/tableB_nodes.csv";
-
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
         if (a == "--qnode" && i + 1 < argc) qname = argv[++i];
@@ -391,57 +445,54 @@ int main(int argc, char** argv) {
         else if (a == "--help" || a == "-h") { usage(argv[0]); return 0; }
         else { std::cerr << "Unknown or incomplete arg: " << a << "\n"; usage(argv[0]); return 2; }
     }
-
     if (qname.empty() || T_ms < 0 || ORDER < 1 || ORDER > 30 || step < 1 || step > 3) {
         usage(argv[0]);
         return 2;
     }
-
     cout << "Query node: " << qname << "\n";
     cout << "RTT threshold (ms): " << T_ms << "\n";
-
     // ---------- load JSON ----------
     json root;
     if (!read_json_file(input_json, root)) {
         cerr << "Cannot read/parse JSON file: " << input_json << "\n";
         return 1;
     }
-
     json arr;
     if (!extract_nodes_array(root, arr)) {
         cerr << "JSON must be an array, or an object with a 'nodes' array: " << input_json << "\n";
         return 1;
     }
-
     const size_t N = arr.size();
     if (N == 0) { cerr << "JSON array is empty\n"; return 1; }
-
     // ---------- build name -> index map ----------
     unordered_map<string, int> idx;
     idx.reserve(N);
     for (size_t i = 0; i < N; i++) if (arr[i].contains("name")) idx[arr[i]["name"].get<string>()] = (int)i;
-
     auto it = idx.find(qname);
     if (it == idx.end()) { cerr << "Query node not found in JSON: " << qname << "\n"; return 1; }
     int qi = it->second;
-
     // ---------- RTT map for q (Vivaldi predicted truth set from JSON) ----------
     if (!arr[qi].contains("rtts") || !arr[qi]["rtts"].is_object()) {
         cerr << "JSON node has no rtts object for: " << qname << "\n"; return 1;
     }
     const json& rtts_q = arr[qi]["rtts"];
-
-    // ---------- extract all names + 5D Vec ----------
+    // ---------- extract all names + 5D Vec + Height + Adjustment ----------
     vector<string> names(N);
     vector<array<double,5>> vecs_ms(N);
-
+    // Height and Adjustment are treated in the same unit conversion as Vec.
+    // If JSON is in seconds, multiply by 1000 to get ms.
+    vector<double> heights_ms(N, 0.0);
+    vector<double> adjs_ms(N, 0.0);
     const double VEC_TO_MS = vec_already_ms ? 1.0 : 1000.0;
-
     for (size_t i = 0; i < N; i++) {
         names[i] = arr[i]["name"].get<string>();
         const json& v = arr[i]["coordinate"]["Vec"];
         for (int d = 0; d < 5; d++) vecs_ms[i][d] = v[d].get<double>() * VEC_TO_MS;
+        if (arr[i]["coordinate"].contains("Height")) heights_ms[i] = arr[i]["coordinate"]["Height"].get<double>() * VEC_TO_MS;
+        if (arr[i]["coordinate"].contains("Adjustment")) adjs_ms[i] = arr[i]["coordinate"]["Adjustment"].get<double>() * VEC_TO_MS;
     }
+    const double q_height_ms = heights_ms[qi];
+    const double q_adj_ms = adjs_ms[qi];
 
     // ---------- GT (truth set for this query) ----------
     vector<pair<string, double>> gt;
@@ -615,13 +666,16 @@ int main(int argc, char** argv) {
     CoverStats st;
 
     coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
-                          point_to_names, qname, hilbert_set, hilbert_names,
+                          point_to_names, qname,
+                          pts, heights_ms, adjs_ms, q_height_ms, q_adj_ms,
+                          hilbert_set, hilbert_names,
                           root_lo, root_hi, 0, st, qs_cover);
 
     cout << "Cover stats:\n";
     cout << "  visited=" << st.visited
          << " pruned_outside=" << st.pruned_outside
          << " pruned_empty=" << st.pruned_empty
+         << " pruned_rtt_lb=" << st.pruned_rtt_lb
          << " accepted_inside=" << st.accepted_inside
          << " accepted_leaf=" << st.accepted_leaf << "\n";
 
@@ -738,7 +792,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // NEW: Append Table A summary CSV (removed latency_max_ms, cell_size_ms, input_json)
+    // NEW: Append Table A summary CSV (updated: appended point-count fields)
     {
         const bool need_header = file_empty_or_missing(out_summary_csv);
         ofstream out(out_summary_csv.c_str(), ios::out | ios::app);
@@ -746,8 +800,9 @@ int main(int argc, char** argv) {
             cerr << "Warning: could not append to summary CSV: " << out_summary_csv << "\n";
         } else {
             if (need_header) {
-                out << "query_node,rtt_ms,hilbert_order,truth_size,returned,tp,fp,fn,precision,recall,jaccard\n";
+                out << "query_node,rtt_ms,hilbert_order,truth_size,returned,tp,fp,fn,precision,recall,jaccard,latency_max_ms,cell_size_ms,mn0_ms,mn1_ms,mn2_ms,mn3_ms,mn4_ms,mx0_ms,mx1_ms,mx2_ms,mx3_ms,mx4_ms,q_height_ms,q_adj_ms,radius_cells_cont,radius_cells_int,root_lb0,root_lb1,root_lb2,root_lb3,root_lb4,root_ub0,root_ub1,root_ub2,root_ub3,root_ub4,cover_visited,cover_pruned_outside,cover_pruned_empty,cover_pruned_rtt_lb,cover_accepted_inside,cover_accepted_leaf,hilbert_count_excl_self,missing_from_lawder,cover_pruned_rtt_lb_points,cover_accepted_leaf_points,cover_accepted_inside_points\n";
             }
+
             out << csv_escape(short_name(qname)) << ","
                 << T_ms << ","
                 << ORDER << ","
@@ -758,12 +813,23 @@ int main(int argc, char** argv) {
                 << FN << ","
                 << precision << ","
                 << recall << ","
-                << jaccard
-                << "\n";
+                 << jaccard << ","
+                 << latency_max << ","
+                 << cell_size_ms << ","
+                 << mn[0] << "," << mn[1] << "," << mn[2] << "," << mn[3] << "," << mn[4] << ","
+                 << mx[0] << "," << mx[1] << "," << mx[2] << "," << mx[3] << "," << mx[4] << ","
+                 << q_height_ms << "," << q_adj_ms << ","
+                 << r_cont << "," << r_cells << ","
+                 << root_lo[0] << "," << root_lo[1] << "," << root_lo[2] << "," << root_lo[3] << "," << root_lo[4] << ","
+                 << root_hi[0] << "," << root_hi[1] << "," << root_hi[2] << "," << root_hi[3] << "," << root_hi[4] << ","
+                 << st.visited << "," << st.pruned_outside << "," << st.pruned_empty << "," << st.pruned_rtt_lb << "," << st.accepted_inside << "," << st.accepted_leaf << ","
+                 << hilbert_names.size() << "," << missing_from_lawder << ","
+                 << st.pruned_rtt_lb_points << "," << st.accepted_leaf_points << "," << st.accepted_inside_points
+                 << "\n";
         }
     }
 
-    // NEW: Append Table B nodes CSV (short names in all node list columns)
+    // NEW: Append Table B nodes CSV (unchanged)
     {
         const bool need_header = file_empty_or_missing(out_nodes_csv);
         ofstream out(out_nodes_csv.c_str(), ios::out | ios::app);

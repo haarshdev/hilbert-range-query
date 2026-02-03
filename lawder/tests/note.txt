@@ -1,0 +1,8 @@
+This directory contains application code
+
+- serf_driver_5D.cc: code for 5D
+- serf_driver_5DP_debug.cc: code with 5D+pruning [with debug]
+- serf_driver_5DP.cc: code with 5D+pruning [plain]
+- serf_driver_6D.cc:  code for 6D [height+adj as one seperate dimension]
+- serf_driver_7D.cc: cpde for 7D [height+adj as two seperate dimensions]
+- serf_driver.cc: code with 5D+pruning [wih additional csvs and columns] current code

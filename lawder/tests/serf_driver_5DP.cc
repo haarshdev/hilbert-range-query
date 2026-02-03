@@ -1,4 +1,4 @@
-// tests/serf_driver.cc serf_driver_5D
+// tests/serf_driver.cc  5D+pruning
 // Lawder Hilbert DB range query driver implementing professor Step 1–3
 // with an efficient "sphere -> sub-quadrants" mapping.
 //
@@ -32,6 +32,17 @@
 //   (3) Repeat-offender FP tracking across multiple runs via --fp_counts_json.
 //   (4) Append two CSVs per run: Table A (summary) + Table B (node lists).
 //
+// NEW UPDATE (this request):
+//   (5) Box-level RTT lower-bound pruning BEFORE calling Lawder:
+//       Keep existing prunes (Vec-sphere + occupancy) and add a third prune:
+//         "Even in the best possible case, could any node in this box have RTT <= T?"
+//       Best possible case means:
+//         - Use the minimum possible Vec distance from query to this box (minDist).
+//         - Use the minimum Height among nodes inside the box.
+//         - Use the minimum (most negative) Adjustment among nodes inside the box.
+//       If that optimistic lower bound already exceeds T_ms, the entire box cannot
+//       contain any true answers -> prune it (reduces FPs without post filtering).
+//
 // Compatibility fix:
 //   Accept JSON root as either an array (old) or an object containing "nodes" array (new).
 
@@ -55,6 +66,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <cstdint>
+#include <errno.h>
 
 #include "../tests/third-party/json.hpp"
 using json = nlohmann::json;
@@ -73,6 +85,12 @@ static bool read_all(const string& path, string& out) {
 static bool file_exists(const std::string& path) {
     struct stat st;
     return stat(path.c_str(), &st) == 0;
+}
+
+static bool ensure_dir_exists(const std::string& dir) {
+    int rc = mkdir(dir.c_str(), 0755);
+    if (rc == 0) return true;          // created successfully
+    return errno == EEXIST;            // already exists
 }
 
 static bool read_json_file(const std::string& path, json& out) {
@@ -282,9 +300,42 @@ struct CoverStats {
     uint64_t visited = 0;
     uint64_t pruned_outside = 0;
     uint64_t pruned_empty = 0;
+
+    // NEW: pruned by RTT optimistic lower bound (before querying Lawder)
+    uint64_t pruned_rtt_lb = 0;
+
     uint64_t accepted_inside = 0;
     uint64_t accepted_leaf = 0;
 };
+
+// NEW helper:
+// Find optimistic (best-case) Height/Adjustment within this box by scanning the nodes.
+// This is intentionally simple and safe because N is small (tens/hundreds), and it avoids
+// building complex per-box summary structures.
+static inline void box_min_height_adj(
+    const vector<array<PU_int,5>>& pts,
+    const vector<double>& heights_ms,
+    const vector<double>& adjs_ms,
+    const array<long long,5>& lo,
+    const array<long long,5>& hi,
+    double& out_min_h,
+    double& out_min_adj)
+{
+    out_min_h = std::numeric_limits<double>::infinity();
+    out_min_adj = std::numeric_limits<double>::infinity(); // "most negative" => minimum value
+
+    for (size_t i = 0; i < pts.size(); i++) {
+        bool inside = true;
+        for (int d = 0; d < 5; d++) {
+            long long v = (long long)pts[i][d];
+            if (v < lo[d] || v > hi[d]) { inside = false; break; }
+        }
+        if (!inside) continue;
+
+        if (heights_ms[i] < out_min_h) out_min_h = heights_ms[i];
+        if (adjs_ms[i] < out_min_adj)  out_min_adj = adjs_ms[i];
+    }
+}
 
 // depth counts subdivision steps; max depth is ORDER (leaf cell size = 1).
 static void coverSphere5D_indexed(
@@ -295,6 +346,11 @@ static void coverSphere5D_indexed(
     double cell_size_ms,                // for mapping grid box -> ms box
     const unordered_map<string, vector<string>>& point_to_names,
     const string& qname,
+    const vector<array<PU_int,5>>& pts, // NEW: all node grid coords for lower-bound scan
+    const vector<double>& heights_ms,   // NEW: node Height in ms
+    const vector<double>& adjs_ms,      // NEW: node Adjustment in ms
+    double q_height_ms,                 // NEW: query Height in ms
+    double q_adj_ms,                    // NEW: query Adjustment in ms
     unordered_map<string,int>& hilbert_set,
     vector<string>& hilbert_names,
     const array<long long,5>& lo,
@@ -314,16 +370,50 @@ static void coverSphere5D_indexed(
         hi_ms[d] = (double)(hi[d] + 1) * cell_size_ms;
     }
 
-    // Geometric prune: fully outside ms-space sphere
-    if (minDist2_PointToBox_ms(center_ms, lo_ms, hi_ms) > r2_ms) {
+    // Geometric prune: fully outside ms-space Vec-sphere
+    const double minDist2 = minDist2_PointToBox_ms(center_ms, lo_ms, hi_ms);
+    if (minDist2 > r2_ms) {
         st.pruned_outside++;
         return;
     }
 
-    // Occupancy prune
+    // Occupancy prune (skip boxes that contain no dataset points)
     if (!box_has_any_point(DB, lo, hi)) {
         st.pruned_empty++;
         return;
+    }
+
+    // ------------------------------------------------------------
+    // NEW PRUNE (box-level RTT optimistic lower bound)
+    //
+    // Question:
+    //   "Even in the BEST possible case, could any node in this box have RTT <= T_ms?"
+    //
+    // Best possible case is intentionally optimistic:
+    //   - Use the closest possible Vec distance from query to this box (sqrt(minDist2)).
+    //   - Inside this box, pick the node with the smallest Height.
+    //   - Inside this box, pick the node with the most negative Adjustment.
+    //
+    // If even this optimistic lower bound is > T_ms, then NO node in this box can satisfy
+    // RTT <= T_ms, so the whole box is guaranteed FP and can be pruned BEFORE calling Lawder.
+    // ------------------------------------------------------------
+    double box_min_h = 0.0, box_min_adj = 0.0;
+    box_min_height_adj(pts, heights_ms, adjs_ms, lo, hi, box_min_h, box_min_adj);
+
+    // box_has_any_point already says there is at least one point, so these should be finite.
+    // Still, guard defensively.
+    if (std::isfinite(box_min_h) && std::isfinite(box_min_adj)) {
+        const double min_vec_dist = std::sqrt(minDist2);
+
+        // RTT lower bound for any node in this box, using Serf coordinate model terms.
+        // This is a LOWER bound: real RTTs for nodes in this box are >= this value.
+        const double best_case_rtt_lb =
+            min_vec_dist + q_height_ms + box_min_h + q_adj_ms + box_min_adj;
+
+        if (best_case_rtt_lb > (double)T_ms) {
+            st.pruned_rtt_lb++;
+            return;
+        }
     }
 
     const bool fully_inside = (maxDist2_PointToBox_ms(center_ms, lo_ms, hi_ms) <= r2_ms);
@@ -354,7 +444,9 @@ static void coverSphere5D_indexed(
         if (empty) continue;
 
         coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
-                              point_to_names, qname, hilbert_set, hilbert_names,
+                              point_to_names, qname,
+                              pts, heights_ms, adjs_ms, q_height_ms, q_adj_ms,
+                              hilbert_set, hilbert_names,
                               clo, chi, depth+1, st, qs);
     }
 }
@@ -368,7 +460,7 @@ int main(int argc, char** argv) {
     bool debug = false;
     bool vec_already_ms = false;
 
-    std::string input_json = "cluster-status-15012026.json";
+    std::string input_json = "cluster-status-15012026.json"; //"cluster-status-15012026.json";
     std::string fp_counts_json;
 
     // NEW: output CSVs (append unsorted; sort later in a separate step)
@@ -431,17 +523,34 @@ int main(int argc, char** argv) {
     }
     const json& rtts_q = arr[qi]["rtts"];
 
-    // ---------- extract all names + 5D Vec ----------
+    // ---------- extract all names + 5D Vec + Height + Adjustment ----------
     vector<string> names(N);
     vector<array<double,5>> vecs_ms(N);
+
+    // Height and Adjustment are treated in the same unit conversion as Vec.
+    // If JSON is in seconds, multiply by 1000 to get ms.
+    vector<double> heights_ms(N, 0.0);
+    vector<double> adjs_ms(N, 0.0);
 
     const double VEC_TO_MS = vec_already_ms ? 1.0 : 1000.0;
 
     for (size_t i = 0; i < N; i++) {
         names[i] = arr[i]["name"].get<string>();
+
         const json& v = arr[i]["coordinate"]["Vec"];
         for (int d = 0; d < 5; d++) vecs_ms[i][d] = v[d].get<double>() * VEC_TO_MS;
+
+        // Height / Adjustment (if missing, keep 0)
+        if (arr[i].contains("coordinate") && arr[i]["coordinate"].is_object()) {
+            const json& c = arr[i]["coordinate"];
+            if (c.contains("Height"))      heights_ms[i] = c["Height"].get<double>() * VEC_TO_MS;
+            if (c.contains("Adjustment"))  adjs_ms[i]    = c["Adjustment"].get<double>() * VEC_TO_MS;
+        }
     }
+
+    // Query node Height/Adjustment in ms (used for box-level RTT lower bound)
+    const double q_height_ms = heights_ms[qi];
+    const double q_adj_ms    = adjs_ms[qi];
 
     // ---------- GT (truth set for this query) ----------
     vector<pair<string, double>> gt;
@@ -476,7 +585,13 @@ int main(int argc, char** argv) {
     const double denom = (double)(1u << ORDER);
     const double cell_size_ms = latency_max / denom;
 
-    std::string dbname = "serfdb_o" + std::to_string(ORDER);
+    std::string dbdir = "serfdb_o" + std::to_string(ORDER);
+    if (!ensure_dir_exists(dbdir)) {
+        cerr << "Cannot create DB directory: " << dbdir << "\n";
+        return 1;
+    }
+
+    std::string dbname = dbdir + "/" + dbdir;
 
     cout << "DB name: " << dbname << " (ORDER=" << ORDER << ", GRID_MAX=" << ((1u<<ORDER)-1u) << ")\n";
     cout << "latency_max(ms): " << latency_max << "\n";
@@ -509,6 +624,7 @@ int main(int argc, char** argv) {
         cout << "Shift maxima mx[d] (ms): ";
         for (int d=0; d<5; d++) cout << mx[d] << (d==4? "\n":" ");
         cout << "Scaling mode: SHIFT-ONLY (no global-span normalization)\n";
+        cout << "Query Height/Adjustment (ms): " << q_height_ms << " " << q_adj_ms << "\n";
     }
 
     auto quantize_prof = [&](double x_ms, int d) -> PU_int {
@@ -615,13 +731,16 @@ int main(int argc, char** argv) {
     CoverStats st;
 
     coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
-                          point_to_names, qname, hilbert_set, hilbert_names,
+                          point_to_names, qname,
+                          pts, heights_ms, adjs_ms, q_height_ms, q_adj_ms,
+                          hilbert_set, hilbert_names,
                           root_lo, root_hi, 0, st, qs_cover);
 
     cout << "Cover stats:\n";
     cout << "  visited=" << st.visited
          << " pruned_outside=" << st.pruned_outside
          << " pruned_empty=" << st.pruned_empty
+         << " pruned_rtt_lb=" << st.pruned_rtt_lb
          << " accepted_inside=" << st.accepted_inside
          << " accepted_leaf=" << st.accepted_leaf << "\n";
 
