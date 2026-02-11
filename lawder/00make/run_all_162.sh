@@ -6,15 +6,15 @@ set -euo pipefail
 # -------------------------
 JSON_PATH="cluster-status-2025-07-11-1-rtts_recomputed.json"   # your 162-node JSON cluster-status-2025-07-11-1.json
 DRIVER_BIN="./serf_driver.exe"                    # compiled binary path
-HORDER="12"
+HORDER="15"
 RTTS=(5 15)
 
-OUT_SUMMARY="tableA_summary_162_12_5DP_debug_1.csv"
-OUT_NODES="tableB_nodes_162_12_5DP_debug_1.csv"
-OUT_BOXES="tableC_boxes_162_12_5DP_debug_1.csv"   # NEW: Table C box debug
-FP_COUNTS="fp_counts_h12_5DP_debug_1.json"                # optional but useful
+OUT_SUMMARY="tableA_summary_162_15_5DP_debug_complexity.csv"
+OUT_NODES="tableB_nodes_162_15_5DP_debug_complexity.csv"
+OUT_BOXES="tableC_boxes_162_15_5DP_debug_complexity.csv"   # NEW: Table C box debug
+FP_COUNTS="fp_counts_h15_5DP_debug_complexity.json"                # optional but useful
 
-LOG_DIR="run_logs_162_h12_5DP_debug_1"
+LOG_DIR="run_logs_162_h15_5DP_debug_complexity"
 mkdir -p "$LOG_DIR"
 
 # -------------------------

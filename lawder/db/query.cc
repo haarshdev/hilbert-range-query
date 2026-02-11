@@ -64,7 +64,8 @@ bool DBASE::db_open_set( PU_int *point, int *set_id )
 		RET_SET *r = new RET_SET( dimensions );
 		Ret_set.push_back( r );
 	}
-	
+
+
 	// initialise the RET_SET
 	for (i = 0; i < dimensions; i++)
 	{
@@ -119,7 +120,7 @@ bool DBASE::db_open_set( PU_int *point, int *set_id )
 	else
 		Ret_set[*set_id]->pos = 1;
 
-	// no need to tag the buffslot as 'FIXED' - done in b_page_retrieve()		
+	// no need to tag the buffslot as 'FIXED' - done in b_page_retrieve()
 	Buffer.BSlot[Ret_set[*set_id]->buffslot]->query = true; // QUERY;
 
 	delete [] minmatch;
@@ -226,7 +227,7 @@ bool DBASE::db_close_set( int set_id )
 
 	if (Ret_set.size() == FreeRet_setList.size())
 		errorexit( "ERROR in db_close_set - no active RET_SETs\n" );
-		
+
 	if (Ret_set.size() - FreeRet_setList.size() == 1)
 	{
 		// this is the only ACTIVE Ret_set
@@ -246,7 +247,7 @@ bool DBASE::db_close_set( int set_id )
 				break;
 		}
 	}
-	
+
        	if (i < 0)
        	{
        		// no other Ret_set is using the page
@@ -280,7 +281,7 @@ bool DBASE::db_fetch_another( int set_id, PU_int *retval )
 		*data;
 	int	lpage, pos, end;
 	U_int	Qsaf = Ret_set[set_id]->Qsaf;
-	
+
 	// while there are still pages left to search
 	for (;;)
 	{
@@ -304,7 +305,7 @@ bool DBASE::db_fetch_another( int set_id, PU_int *retval )
 				if (i < dimensions && Qsaf & ((U_int)1 << (dimensions-1-i)))
 					break; /* no more matches on this page */
 			}
-			
+
 			for (; i < dimensions; i++)
 			{
 				if (Qsaf & ((U_int)1 << (dimensions-1-i)))
@@ -334,7 +335,7 @@ bool DBASE::db_fetch_another( int set_id, PU_int *retval )
 			return false;
 		}
 
-		// have we just searched the last page?		
+		// have we just searched the last page?
 		if (Buffer.BSlot[buffslot]->BPage.page_hdr->lpage == LastPage)
 		{
 			// there can be no higher match
@@ -352,7 +353,7 @@ bool DBASE::db_fetch_another( int set_id, PU_int *retval )
 
 		// find next match above this key
 	 	memset( next_match, 0, sizeof(HU_int) * dimensions );
-		
+
 		if (false == H_nextmatch_PM( query, next_match, next_pagekey,
 					Qsaf, dimensions ))
 		{
@@ -387,15 +388,15 @@ bool DBASE::db_fetch_another( int set_id, PU_int *retval )
           		Buffer.BSlot[buffslot]->fix =
           		Buffer.BSlot[buffslot]->query = false;
           	}
-					
+
 		// find the page that may contain the match
 		lpage = BT.idx_search( next_match );
-		
+
 		Ret_set[set_id]->buffslot = Buffer.b_page_retrieve( lpage );
 		Buffer.BSlot[Ret_set[set_id]->buffslot]->query = true; // QUERY;
 
 		if (Qsaf >= ((U_int)1 << (dimensions-1)))
-		{	
+		{
 			// binary search possible
 			i = Buffer.BSlot[Ret_set[set_id]->buffslot]->BPage.p_find_pageslot( query );
 			if (i < 0)
@@ -449,7 +450,6 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
 			{
 				keycopy( retval, data, dimensions);
 				Ret_set[set_id]->pos = pos + 1;
-				
 				delete [] next_pagekey;
 				delete [] next_match;
 				return true;
@@ -457,8 +457,8 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
 			if (no_more)
 				break;
 		}
-		
-		// have we just searched the last page?		
+
+		// have we just searched the last page?
 		if (Buffer.BSlot[buffslot]->BPage.page_hdr->lpage == LastPage)
 		{
 			// there can be no higher match
@@ -473,7 +473,7 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
 				Buffer.BSlot[buffslot]->BPage.index,
 				Buffer.BSlot[buffslot]->BPage.page_hdr->lpage ),
 			 dimensions );
-			
+
 		// find next match above this next_pagekey, place result in next_match
 	 	memset( next_match, 0, sizeof(PU_int) * dimensions );
 
@@ -486,7 +486,7 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
 			delete [] next_match;
 			return false; // no higher matching hilbert codes
 		}
-		
+
 		// clear the current page's flags if not in use by another Ret_set
         	if (Ret_set.size() - FreeRet_setList.size() == 1)
         	{
@@ -513,7 +513,7 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
           		Buffer.BSlot[buffslot]->fix =
           		Buffer.BSlot[buffslot]->query = false;
           	}
-			
+
 		// find the page that may contain the match
 		lpage = BT.idx_search( next_match );
 
@@ -526,4 +526,3 @@ bool DBASE::db_range_fetch_another( int set_id, PU_int *retval )
 		Ret_set[set_id]->pos = i;
 	}
 }
-

@@ -81,6 +81,7 @@ private:
 	int	numspec;// no. of specified dims (partial matchqueries only)
 	int	pos;	// search position on a page
 	int	buffslot;
+
 	unsigned char	flags;
 };
 
@@ -122,6 +123,7 @@ public:
 	bool db_close_set( int set_id );
 	bool db_fetch_another( int set_id, PU_int *retval );
 	bool db_range_fetch_another( int set_id, PU_int *retval );
+
 	
 	// FOR CHECKING PURPOSES ..............
 	void db_key_dump( string fname );

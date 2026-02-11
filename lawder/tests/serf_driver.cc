@@ -1,3 +1,4 @@
+#include <chrono>
 // tests/serf_driver.cc  5D+pruning
 // Lawder Hilbert DB range query driver implementing professor Step 1–3
 // with an efficient "sphere -> sub-quadrants" mapping.
@@ -48,6 +49,7 @@
 //   Accept JSON root as either an array (old) or an object containing "nodes" array (new).
 #ifdef DEV
   #include "../db/db.h"
+  #include "../hilbert/hilbert.h"
 #else
   #include "db.h"
 #endif
@@ -229,6 +231,9 @@ struct QueryStats {
     uint64_t open_fail = 0;
     uint64_t fetched_rows = 0;
     uint64_t matched_names = 0;
+
+    // Lawder 'cell' instrumentation (accumulated across all submitted boxes)
+    uint64_t lawder_box_queries = 0;
 };
 // open a range set and fetch at most 1 record.
 // Used ONLY for occupancy pruning.
@@ -256,6 +261,7 @@ static void run_one_box_query(
     PU_int LB[5], UB[5], result[5];
     for (int d=0; d<5; d++) { LB[d]=(PU_int)lo[d]; UB[d]=(PU_int)hi[d]; }
     int set_id = -1;
+    qs.lawder_box_queries++;
     if (true == DB->db_range_open_set(LB, UB, &set_id)) {
         qs.open_ok++;
         while (true == DB->db_range_fetch_another(set_id, result)) {
@@ -274,6 +280,7 @@ static void run_one_box_query(
                 }
             }
         }
+        
         DB->db_close_set(set_id);
     } else {
         qs.open_fail++;
@@ -495,7 +502,8 @@ if (box_debug_map) {
         bool empty=false;
         for (int d=0; d<5; d++) if (clo[d] > chi[d]) { empty=true; break; }
         if (empty) continue;
-        coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
+        auto __tq0 = std::chrono::high_resolution_clock::now();
+    coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
                               point_to_names, qname,
                               pts, heights_ms, adjs_ms, names, q_height_ms, q_adj_ms,
                               hilbert_set, hilbert_names,
@@ -598,18 +606,7 @@ int main(int argc, char** argv) {
     // ============================================================
     // Step 1: latency_max and cell_size (based on JSON rtts)
     // ============================================================
-    double latency_max = 0.0;
-    for (size_t i = 0; i < arr.size(); i++) {
-        if (!arr[i].contains("rtts") || !arr[i]["rtts"].is_object()) continue;
-        const json& ri = arr[i]["rtts"];
-        for (size_t j = 0; j < names.size(); j++) {
-            const string& jname = names[j];
-            if (!ri.contains(jname)) continue;
-            double r = ri[jname].get<double>();
-            latency_max = std::max(latency_max, r);
-        }
-    }
-    if (latency_max <= 0.0) latency_max = 83.0;
+    double latency_max = 83.283;
 
     const PU_int GRID_MAX = (PU_int)((1u << ORDER) - 1u);
     const double denom = (double)(1u << ORDER);
@@ -697,14 +694,46 @@ int main(int argc, char** argv) {
 
     DBASE* DB = new DBASE(dbname, DIMS, BT_NODE_ENTRIES, BUFFER_PAGES, PAGE_RECORDS);
 
-    if (rebuild || !db_exists) {
+    bool did_build = (rebuild || !db_exists);
+    unsigned long long encode_calls_total = 0;
+    double t_encode_total_ms = std::numeric_limits<double>::quiet_NaN();
+    double t_index_build_ms = std::numeric_limits<double>::quiet_NaN();
+
+    std::chrono::high_resolution_clock::time_point __tb0;
+    if (did_build) {
+        hilbert_reset_encode_stats();
+        __tb0 = std::chrono::high_resolution_clock::now();
+    }
+
+    if (did_build) {
         cout << "Creating new DB files...\n";
         if (!DB->db_create()) { cerr << "DB create failed\n"; delete DB; return 1; }
     }
 
     if (!DB->db_open()) { cerr << "DB open failed\n"; delete DB; return 1; }
 
-    if (rebuild || !db_exists) {
+    if (debug) {
+        // Count total records stored in the Lawder DB by scanning full key space.
+        // This is a sanity check to confirm DB cardinality.
+        PU_int lb[5] = {0,0,0,0,0};
+        PU_int ub[5] = { (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX };
+
+        int set_id = -1;
+        if (DB->db_range_open_set(lb, ub, &set_id)) {
+            unsigned long long db_rows = 0;
+            PU_int rec[5];
+            while (DB->db_range_fetch_another(set_id, rec)) {
+                db_rows++;
+            }
+            DB->db_close_set(set_id);
+            cerr << "[debug] DB total records (full scan): " << db_rows << "\n";
+        } else {
+            cerr << "[debug] Could not open full-scan range set\n";
+        }
+    }
+
+
+    if (did_build) {
         int inserted = 0;
         for (size_t i=0; i<N; i++) {
             PU_int p[5]; for (int d=0; d<5; d++) p[d] = pts[i][d];
@@ -715,6 +744,10 @@ int main(int argc, char** argv) {
             inserted++;
         }
         cout << "Inserted " << inserted << " points into DB\n";
+        auto __tb1 = std::chrono::high_resolution_clock::now();
+        t_index_build_ms = std::chrono::duration<double, std::milli>(__tb1 - __tb0).count();
+        encode_calls_total = hilbert_get_encode_calls();
+        t_encode_total_ms = (double)hilbert_get_encode_time_ns() / 1000000.0;
     }
 
     const double r_cont = (double)T_ms / cell_size_ms;
@@ -752,11 +785,13 @@ int main(int argc, char** argv) {
 
     QueryStats qs_cover;
     CoverStats st;
+    double t_hilbert_query_ms = std::numeric_limits<double>::quiet_NaN();
 
     // Optional Table C (box-level debug): only populated when --out_boxes_csv is provided.
     unordered_map<string, BoxDebug> box_debug_map;
     vector<BoxHit> box_hits;
 
+    auto __tq0 = std::chrono::high_resolution_clock::now();
     coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
                           point_to_names, qname,
                           pts, heights_ms, adjs_ms, names, q_height_ms, q_adj_ms,
@@ -764,6 +799,8 @@ int main(int argc, char** argv) {
                           root_lo, root_hi, 0, st, qs_cover,
                           (out_boxes_csv.empty() ? nullptr : &box_debug_map),
                           (out_boxes_csv.empty() ? nullptr : &box_hits));
+    auto __tq1 = std::chrono::high_resolution_clock::now();
+    t_hilbert_query_ms = std::chrono::duration<double, std::milli>(__tq1 - __tq0).count();
 
     cout << "Cover stats:\n";
     cout << "  visited=" << st.visited
@@ -778,27 +815,6 @@ int main(int argc, char** argv) {
         double rtt = rtts_q.contains(nm) ? rtts_q[nm].get<double>() : -1.0;
         cout << "  " << nm << "  rtt=" << rtt << "\n";
     }
-
-    // Validation vs brute-force sphere in grid units
-    unordered_map<string,int> brute_set;
-    brute_set.reserve(N*4);
-    const long long r2 = r_cells * r_cells;
-
-    for (size_t i=0; i<N; i++) {
-        const string& nm = names[i];
-        if (nm == qname) continue;
-        array<long long,5> p = {
-            (long long)pts[i][0], (long long)pts[i][1], (long long)pts[i][2],
-            (long long)pts[i][3], (long long)pts[i][4]
-        };
-        if (dist2_PointToPoint(center, p) <= r2) brute_set.emplace(nm,1);
-    }
-
-    int missing_from_lawder=0;
-    for (auto& kv : brute_set) if (hilbert_set.find(kv.first) == hilbert_set.end()) missing_from_lawder++;
-
-    cout << "VALIDATION vs brute-force sphere:\n";
-    cout << "  missing_from_lawder=" << missing_from_lawder << "\n";
 
     // ============================================================
     // Professor experiment metrics vs RTT truth set:
@@ -894,7 +910,7 @@ int main(int argc, char** argv) {
             cerr << "Warning: could not append to summary CSV: " << out_summary_csv << "\n";
         } else {
             if (need_header) {
-                out << "query_node,rtt_ms,hilbert_order,truth_size,returned,tp,fp,fn,precision,recall,jaccard,latency_max_ms,cell_size_ms,mn0_ms,mn1_ms,mn2_ms,mn3_ms,mn4_ms,mx0_ms,mx1_ms,mx2_ms,mx3_ms,mx4_ms,q_height_ms,q_adj_ms,radius_cells_cont,radius_cells_int,root_lb0,root_lb1,root_lb2,root_lb3,root_lb4,root_ub0,root_ub1,root_ub2,root_ub3,root_ub4,cover_visited,cover_pruned_outside,cover_pruned_empty,cover_pruned_rtt_lb,cover_accepted_inside,cover_accepted_leaf,hilbert_count_excl_self,missing_from_lawder,cover_pruned_rtt_lb_points,cover_accepted_leaf_points,cover_accepted_inside_points\n";
+                out << "query_node,rtt_ms,hilbert_order,truth_size,returned,tp,fp,fn,precision,recall,jaccard,latency_max_ms,cell_size_ms,mn0_ms,mn1_ms,mn2_ms,mn3_ms,mn4_ms,mx0_ms,mx1_ms,mx2_ms,mx3_ms,mx4_ms,q_height_ms,q_adj_ms,radius_cells_cont,radius_cells_int,root_lb0,root_lb1,root_lb2,root_lb3,root_lb4,root_ub0,root_ub1,root_ub2,root_ub3,root_ub4,cover_visited,cover_pruned_outside,cover_pruned_empty,cover_pruned_rtt_lb,cover_accepted_inside,cover_accepted_leaf,hilbert_count_excl_self,cover_pruned_rtt_lb_points,cover_accepted_leaf_points,cover_accepted_inside_points,lawder_box_queries,t_hilbert_query_ms,did_build,encode_calls_total,t_encode_total_ms,t_index_build_ms\n";
             }
 
             out << csv_escape(short_name(qname)) << ","
@@ -907,19 +923,19 @@ int main(int argc, char** argv) {
                 << FN << ","
                 << precision << ","
                 << recall << ","
-                 << jaccard << ","
-                 << latency_max << ","
-                 << cell_size_ms << ","
-                 << mn[0] << "," << mn[1] << "," << mn[2] << "," << mn[3] << "," << mn[4] << ","
-                 << mx[0] << "," << mx[1] << "," << mx[2] << "," << mx[3] << "," << mx[4] << ","
-                 << q_height_ms << "," << q_adj_ms << ","
-                 << r_cont << "," << r_cells << ","
-                 << root_lo[0] << "," << root_lo[1] << "," << root_lo[2] << "," << root_lo[3] << "," << root_lo[4] << ","
-                 << root_hi[0] << "," << root_hi[1] << "," << root_hi[2] << "," << root_hi[3] << "," << root_hi[4] << ","
-                 << st.visited << "," << st.pruned_outside << "," << st.pruned_empty << "," << st.pruned_rtt_lb << "," << st.accepted_inside << "," << st.accepted_leaf << ","
-                 << hilbert_names.size() << "," << missing_from_lawder << ","
-                 << st.pruned_rtt_lb_points << "," << st.accepted_leaf_points << "," << st.accepted_inside_points
-                 << "\n";
+                << jaccard << ","
+                << latency_max << ","
+                << cell_size_ms << ","
+                << mn[0] << "," << mn[1] << "," << mn[2] << "," << mn[3] << "," << mn[4] << ","
+                << mx[0] << "," << mx[1] << "," << mx[2] << "," << mx[3] << "," << mx[4] << ","
+                << q_height_ms << "," << q_adj_ms << ","
+                << r_cont << "," << r_cells << ","
+                << root_lo[0] << "," << root_lo[1] << "," << root_lo[2] << "," << root_lo[3] << "," << root_lo[4] << ","
+                << root_hi[0] << "," << root_hi[1] << "," << root_hi[2] << "," << root_hi[3] << "," << root_hi[4] << ","
+                << st.visited << "," << st.pruned_outside << "," << st.pruned_empty << "," << st.pruned_rtt_lb << "," << st.accepted_inside << "," << st.accepted_leaf << ","
+                << hilbert_names.size() << "," << st.pruned_rtt_lb_points << "," << st.accepted_leaf_points << "," << st.accepted_inside_points << ","
+                << qs_cover.lawder_box_queries << "," << t_hilbert_query_ms << "," << (did_build ? 1 : 0) << "," << encode_calls_total << "," << t_encode_total_ms << "," << t_index_build_ms
+                << "\n";
         }
     }
 

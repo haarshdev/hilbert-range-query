@@ -9,6 +9,17 @@
 /*----------------------------------------------------------------------------*/
 
 //#include <stdio.h>
+
+// -------------------------
+// ENCODE instrumentation
+// -------------------------
+static unsigned long long g_encode_calls = 0;
+static unsigned long long g_encode_time_ns = 0;
+
+void hilbert_reset_encode_stats() { g_encode_calls = 0; g_encode_time_ns = 0; }
+unsigned long long hilbert_get_encode_calls() { return g_encode_calls; }
+unsigned long long hilbert_get_encode_time_ns() { return g_encode_time_ns; }
+
 //#include <stdlib.h>
 //#include <math.h>
 
@@ -18,6 +29,7 @@
 #else
 	#include "../gendefs.h"
 	#include "../utils/utils.h"
+#include <chrono>
 #endif
 
 using namespace std;
@@ -46,6 +58,9 @@ using namespace std;
 // is called.
 HU_int* ENCODE( HU_int* hcode, const PU_int* const point, int DIMS )
 {
+	auto __t0 = std::chrono::high_resolution_clock::now();
+	g_encode_calls++;
+
 	U_int	mask = (U_int)1 << WORDBITS - 1, element, temp1, temp2,
 		A, W = 0, S, tS, T, tT, J, P = 0, xJ;
 	int	i = NUMBITS * DIMS - DIMS, j;
@@ -174,7 +189,11 @@ for (i=0; i < DIMS; i++)
 /-*	printf("BUTZ %-13u", hcode[i]); printf("\n");*-/
 	printf("XXX  %-13u", hcode[i]); printf("\n");
 */
-	return hcode;
+	
+	auto __t1 = std::chrono::high_resolution_clock::now();
+	g_encode_time_ns += (unsigned long long)std::chrono::duration_cast<std::chrono::nanoseconds>(__t1 - __t0).count();
+
+return hcode;
 }
 
 /*============================================================================*/

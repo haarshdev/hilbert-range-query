@@ -7,6 +7,7 @@ TARGET1		=	a.out
 TARGET2		= 	b.exe
 DEMO		=	demo.exe
 SERF_DRIVER = 	serf_driver.exe
+SERF_DRIVER_NAIVE = serf_driver_naive.exe
 #..............................................................................
 #		IF FDL NOT ENABLED			FDLFDLFDLFDLFDL!!!!!!!!
 #..............................................................................
@@ -53,6 +54,7 @@ COMPILER2	=	g++
 #OBJECTS2	=	btree.o db.o buffer.o page.o hilbert.o utils.o test2.o
 DEMO_OBJ	=	btree.o db.o buffer.o page.o query.o hilbert.o utils.o demo.o
 SERF_OBJ    = 	btree.o db.o buffer.o page.o query.o hilbert.o utils.o serf_driver.o
+SERF_NAIVE_OBJ = serf_driver_naive.o
 #OBJECTSj	=	db.o buffer.o page.o utils.o testj.o
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #		TARGET DEFINITIONS
@@ -66,6 +68,8 @@ $(DEMO):	$(DEMO_OBJ)
 		$(COMPILER2) $(T_FLAGS) $(DEMO) $(DEMO_OBJ)
 $(SERF_DRIVER): $(SERF_OBJ)
 		$(COMPILER2) $(T_FLAGS) $(SERF_DRIVER) $(SERF_OBJ)
+$(SERF_DRIVER_NAIVE): $(SERF_NAIVE_OBJ)
+		$(COMPILER2) $(T_FLAGS) $(SERF_DRIVER_NAIVE) $(SERF_NAIVE_OBJ)
 #$(TARGETj):	$(OBJECTSj)
 #		$(COMPILER2) $(T_FLAGS) $(TARGETj) $(OBJECTSj)
 #All:$(TARGET1) $(TARGET2)
@@ -91,6 +95,9 @@ serf_driver.o:	$(ROOT_DIR)gendefs.h $(B_DIR)btree.h $(U_DIR)utils.h \
 		$(D_DIR)db.h $(D_DIR)buffer.h $(D_DIR)page.h \
 		$(T_DIR)serf_driver.cc
 		$(COMPILER) $(O_FLAGS) $(T_DIR)serf_driver.cc
+
+serf_driver_naive.o: $(T_DIR)serf_driver_naive.cc
+		$(COMPILER) $(O_FLAGS) $(T_DIR)serf_driver_naive.cc
 #
 #testj.o:	$(ROOT_DIR)gendefs.h $(U_DIR)utils.h \
 #		$(D_DIR)db.h buffer.h page.h \
