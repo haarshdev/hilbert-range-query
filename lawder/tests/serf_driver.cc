@@ -712,27 +712,6 @@ int main(int argc, char** argv) {
 
     if (!DB->db_open()) { cerr << "DB open failed\n"; delete DB; return 1; }
 
-    if (debug) {
-        // Count total records stored in the Lawder DB by scanning full key space.
-        // This is a sanity check to confirm DB cardinality.
-        PU_int lb[5] = {0,0,0,0,0};
-        PU_int ub[5] = { (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX, (PU_int)GRID_MAX };
-
-        int set_id = -1;
-        if (DB->db_range_open_set(lb, ub, &set_id)) {
-            unsigned long long db_rows = 0;
-            PU_int rec[5];
-            while (DB->db_range_fetch_another(set_id, rec)) {
-                db_rows++;
-            }
-            DB->db_close_set(set_id);
-            cerr << "[debug] DB total records (full scan): " << db_rows << "\n";
-        } else {
-            cerr << "[debug] Could not open full-scan range set\n";
-        }
-    }
-
-
     if (did_build) {
         int inserted = 0;
         for (size_t i=0; i<N; i++) {
