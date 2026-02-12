@@ -337,12 +337,22 @@ static inline std::string box_key_str(const array<long long,5>& lo, const array<
     return k;
 }
 
+
 // NEW helper:
-// Find optimistic (best-case) Height/Adjustment within this box by scanning the nodes.
-// This is intentionally simple and safe because N is small (tens/hundreds), and it avoids
-// building complex per-box summary structures.
+// Find optimistic (best-case) Height/Adjustment within this box by iterating only
+// over the dataset points that fall inside the box (via the DB range iterator).
+//
+// This avoids scanning all N nodes for every visited box. Instead, it enumerates
+// only the points contained in [lo..hi] and computes:
+//   - minimum Height among nodes in the box
+//   - minimum (most negative) Adjustment among nodes in the box
+//
+// Note: multiple nodes may share the same grid point; point_to_names maps a point
+// to all node names at that location.
 static inline void box_min_height_adj(
-    const vector<array<PU_int,5>>& pts,
+    DBASE* DB,
+    const unordered_map<string, vector<string>>& point_to_names,
+    const unordered_map<string, int>& name_to_idx,
     const vector<double>& heights_ms,
     const vector<double>& adjs_ms,
     const vector<string>& names,
@@ -359,18 +369,37 @@ static inline void box_min_height_adj(
     out_min_h_idx = (size_t)-1;
     out_min_adj_idx = (size_t)-1;
     out_point_count = 0;
-    for (size_t i = 0; i < pts.size(); i++) {
-        bool inside = true;
-        for (int d = 0; d < 5; d++) {
-            long long v = (long long)pts[i][d];
-            if (v < lo[d] || v > hi[d]) { inside = false; break; }
-        }
-        if (!inside) continue;
-        out_point_count++;
-        if (heights_ms[i] < out_min_h) { out_min_h = heights_ms[i]; out_min_h_idx = i; }
-        if (adjs_ms[i] < out_min_adj)  { out_min_adj = adjs_ms[i];  out_min_adj_idx = i; }
+
+    PU_int LB[5], UB[5], result[5];
+    for (int d=0; d<5; d++) { LB[d]=(PU_int)lo[d]; UB[d]=(PU_int)hi[d]; }
+
+    int set_id = -1;
+    if (true != DB->db_range_open_set(LB, UB, &set_id)) {
+        return; // leave infinities; caller will guard
     }
+
+    while (true == DB->db_range_fetch_another(set_id, result)) {
+        array<PU_int,5> rp = {result[0],result[1],result[2],result[3],result[4]};
+        const string k = point_key(rp);
+
+        auto itp = point_to_names.find(k);
+        if (itp == point_to_names.end()) continue;
+
+        // Each point may represent multiple nodes.
+        for (const string& nm : itp->second) {
+            auto iti = name_to_idx.find(nm);
+            if (iti == name_to_idx.end()) continue;
+            const size_t i = (size_t)iti->second;
+
+            out_point_count++;
+            if (heights_ms[i] < out_min_h) { out_min_h = heights_ms[i]; out_min_h_idx = i; }
+            if (adjs_ms[i] < out_min_adj)  { out_min_adj = adjs_ms[i];  out_min_adj_idx = i; }
+        }
+    }
+
+    DB->db_close_set(set_id);
 }
+
 // depth counts subdivision steps; max depth is ORDER (leaf cell size = 1).
 static void coverSphere5D_indexed(
     DBASE* DB,
@@ -380,6 +409,7 @@ static void coverSphere5D_indexed(
     double cell_size_ms,                // for mapping grid box -> ms box
     const unordered_map<string, vector<string>>& point_to_names,
     const string& qname,
+    const unordered_map<string, int>& name_to_idx,
     const vector<array<PU_int,5>>& pts, // all node grid coords for lower-bound scan
     const vector<double>& heights_ms,   // node Height in ms
     const vector<double>& adjs_ms,      // node Adjustment in ms
@@ -433,7 +463,7 @@ static void coverSphere5D_indexed(
     size_t box_min_h_idx = (size_t)-1;
     size_t box_min_adj_idx = (size_t)-1;
     uint64_t box_point_count = 0;
-    box_min_height_adj(pts, heights_ms, adjs_ms, names, lo, hi,
+    box_min_height_adj(DB, point_to_names, name_to_idx, heights_ms, adjs_ms, names, lo, hi,
                       box_min_h, box_min_adj, box_min_h_idx, box_min_adj_idx, box_point_count);
     // box_has_any_point already says there is at least one point, so these should be finite.
     // Still, guard defensively.
@@ -504,10 +534,11 @@ if (box_debug_map) {
         if (empty) continue;
         auto __tq0 = std::chrono::high_resolution_clock::now();
     coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
-                              point_to_names, qname,
-                              pts, heights_ms, adjs_ms, names, q_height_ms, q_adj_ms,
-                              hilbert_set, hilbert_names,
-                              clo, chi, depth+1, st, qs, box_debug_map, box_hits);
+                            point_to_names, qname,
+                            name_to_idx,
+                            pts, heights_ms, adjs_ms, names, q_height_ms, q_adj_ms,
+                            hilbert_set, hilbert_names,
+                            clo, chi, depth+1, st, qs, box_debug_map, box_hits);
     }
 }
 int main(int argc, char** argv) {
@@ -564,6 +595,7 @@ int main(int argc, char** argv) {
     unordered_map<string, int> idx;
     idx.reserve(N);
     for (size_t i = 0; i < N; i++) if (arr[i].contains("name")) idx[arr[i]["name"].get<string>()] = (int)i;
+    const auto& name_to_idx = idx;
     auto it = idx.find(qname);
     if (it == idx.end()) { cerr << "Query node not found in JSON: " << qname << "\n"; return 1; }
     int qi = it->second;
@@ -773,6 +805,7 @@ int main(int argc, char** argv) {
     auto __tq0 = std::chrono::high_resolution_clock::now();
     coverSphere5D_indexed(DB, ORDER, center_ms, T_ms, cell_size_ms,
                           point_to_names, qname,
+                          name_to_idx,
                           pts, heights_ms, adjs_ms, names, q_height_ms, q_adj_ms,
                           hilbert_set, hilbert_names,
                           root_lo, root_hi, 0, st, qs_cover,
